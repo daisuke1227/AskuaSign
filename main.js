@@ -89,7 +89,7 @@ async function signApp(uuid, res, req, store) {
     const plistPath = path.join(__dirname, 'files', 'plists', `${uuid}.plist`);
     const signAppPath = path.join(__dirname, 'files', 'signed', `${uuid}.ipa`);
 
-    var nya = await execAwait(`zsign -k ${p12Path} -m ${provPath} ${password ? `-p ${password}` : ""} ${appPath} -o ${signAppPath} ${bid ? `-b ${bid.replace(/\s+/g, ' ').trim()}` : ""} ${appname ? `-n '${appname}'` : ""} -f`);
+    var nya = await execAwait(`./zsign -k ${p12Path} -m ${provPath} ${password ? `-p ${password}` : ""} ${appPath} -o ${signAppPath} ${bid ? `-b ${bid.replace(/\s+/g, ' ').trim()}` : ""} ${appname ? `-n '${appname}'` : ""} -f`);
 
     if(nya == true) {
         return res.json({ status: 'error', message: "error while signing app (incorrect password)" });
