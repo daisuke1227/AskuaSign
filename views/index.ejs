@@ -1,6 +1,7 @@
 <html lang="en">
   <head>
     <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+    
 
     <title>AppTesters IPA Signer</title>
     <meta charset="utf-8" />
@@ -14,11 +15,6 @@
       rel="shortcut icon"
       href="/assets/apptesters-iconx1024.png"
     />
-    <link
-      href="https://sign.askua.ovh/assets/plugins/global/plugins.dark.bundle.css"
-      rel="stylesheet"
-      type="text/css"
-    />
 <link
       href="/assets/style.dark.bundle.css"
       rel="stylesheet"
@@ -29,6 +25,9 @@
       rel="stylesheet"
       type="text/css"
     />-->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   </head>
 
   <body id="kt_body" class="dark-mode auth-bg">
@@ -231,8 +230,28 @@ style="background-color:#161616"
     <script
       src="https://sign.askua.ovh/assets/plugins/global/plugins.bundle.js"
       type="text/javascript"
-    ></script>
+     ></script>
+    
     <script type="text/javascript">
+      function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
+        } else {
+            let textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            return new Promise((res, rej) => {
+                document.execCommand('copy') ? res() : rej();
+                textArea.remove();
+            });
+        }
+      }
+
       function progressHandler(event) {
         var percent = event.loaded / event.total;
         document.getElementById("progressBar").style.opacity = 1;
@@ -245,7 +264,7 @@ style="background-color:#161616"
             document.getElementById("border").remove();
             document.getElementById("waittext").innerHTML = "<span class='fs-6 fw-semibold form-label mt-3'>Please wait while we download your IPA...</span>";
             document.getElementById("waittext").class = "text-center fs-6 fw-semibold form-label mt-3";
-         }
+          }
         }
       }
 
@@ -289,98 +308,99 @@ style="background-color:#161616"
       }))
 
       document.getElementById("uploadipa").addEventListener("click", (function() {
-              (async () => {
-                    var formData = new FormData();
-                    formData.append("ipa", document.getElementById("ipa").type === "file" ? document.getElementById("ipa").files[0] : document.getElementById("ipa").value);
-                    <% if(token) { %>
-                    formData.append("p12", "stored");
-                    formData.append("prov", 'stored');
-                    <% }else{ %>
-                    formData.append("p12", document.getElementById("p12").files[0]);
-                    formData.append("prov", document.getElementById("prov").files[0]);
-                    <% } %>
-                    formData.append("password", document.getElementById("password").value);
-                    formData.append("bname", document.getElementById("bname").value);
-                    formData.append("bid", document.getElementById("bid").value);
-                    formData.append("store", document.getElementById("store").checked);
+            (async () => {
+                var formData = new FormData();
+                formData.append("ipa", document.getElementById("ipa").type === "file" ? document.getElementById("ipa").files[0] : document.getElementById("ipa").value);
+                <% if(token) { %>
+                formData.append("p12", "stored");
+                formData.append("prov", 'stored');
+                <% }else{ %>
+                formData.append("p12", document.getElementById("p12").files[0]);
+                formData.append("prov", document.getElementById("prov").files[0]);
+                <% } %>
+                formData.append("password", document.getElementById("password").value);
+                formData.append("bname", document.getElementById("bname").value);
+                formData.append("bid", document.getElementById("bid").value);
+                formData.append("store", document.getElementById("store").checked);
 
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("POST", "/upload", true);
-                    xhr.upload.addEventListener("progress", progressHandler, false);
-                    document.getElementById("uploadipa").remove();
-                    xhr.onload = async function() {
-                          if (this.status === 200) {
-                            var data = JSON.parse(this.responseText);
-                            if (data.status === "ok") {
-                              var uuid = data.uuid;
-                              const {
-                                value: nya
-                              } = await Swal.fire({
-                                text: "Files uploaded, please press the button below to sign your IPA!",
-                                icon: "success",
-                                type: "success",
-                                buttonsStyling: !1,
-                                confirmButtonText: "Sign IPA",
-                                customClass: {
-                                  confirmButton: "btn btn-primary",
-                                },
-                              });
-                              if (nya) {
-                                var xhr = new XMLHttpRequest();
-                                xhr.onreadystatechange = function() {
-                                    if (xhr.readyState == 4 && xhr.status == 200) {
-                                      let data = JSON.parse(xhr.responseText);
-                                      if (data.status === 'ok') {
-                                        Swal.fire({
-                                            text: "IPA Signed!",
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/upload", true);
+                xhr.upload.addEventListener("progress", progressHandler, false);
+                document.getElementById("uploadipa").remove();
+                xhr.onload = async function() {
+                    if (this.status === 200) {
+                      var data = JSON.parse(this.responseText);
+                      if (data.status === "ok") {
+                        var uuid = data.uuid;
+                        const {
+                          value: nya
+                        } = await Swal.fire({
+                          text: "Files uploaded, please press the button below to sign your IPA!",
+                          icon: "success",
+                          type: "success",
+                          buttonsStyling: !1,
+                          confirmButtonText: "Sign IPA",
+                          customClass: {
+                            confirmButton: "btn btn-primary",
+                          },
+                        });
+                        if (nya) {
+                          var xhr = new XMLHttpRequest();
+                          xhr.onreadystatechange = function() {
+                              if (xhr.readyState == 4 && xhr.status == 200) {
+                                let data = JSON.parse(xhr.responseText);
+                                if (data.status === 'ok') {
+                                  Swal.fire({
+                                    text: "IPA Signed!",
+                                    icon: "success",
+                                    buttonsStyling: !1,
+                                    confirmButtonText: `Install IPA`,
+                                    showCancelButton: true,
+                                    cancelButtonText: `Copy URL`,
+                                    customClass: {
+                                      confirmButton: "btn btn-primary",
+                                      cancelButton: "btn btn-danger"
+                                    },
+                                  }).then(
+                                    function(e) {
+                                      if (e.isConfirmed) {
+                                        <% if(!mobile) { %>
+                                          // FIX 2: The second call is now replaced
+                                          copyToClipboard(data.pcurl);
+                                          Swal.fire({
+                                            title: "IPA Install URL",
+                                            text: data.pcurl,
                                             icon: "success",
                                             buttonsStyling: !1,
-                                            confirmButtonText: `Install IPA`,
-                                            showCancelButton: true,
-                                            cancelButtonText: `Copy URL`,
-                                            customClass: {
-                                              confirmButton: "btn btn-primary",
-                                              cancelButton: "btn btn-danger"
-                                            },
-                                          }).then(
-                                            function(e) {
-                                              if (e.isConfirmed) {
-                                                <% if(!mobile) { %>
-                                                navigator.clipboard.writeText(data.pcurl)
-                                                Swal.fire({
-                                                  title: "IPA Install URL",
-                                                  text: data.pcurl,
-                                                  icon: "success",
-                                                  buttonsStyling: !1,
-                                                  confirmButtonText: "Copy!",
-                                                  customClass: {
-                                                    confirmButton: "btn btn-primary",
-                                                  },
-                                                })
-                                                <% }else{ %>
-                                                window.location.href = data.url;
-                                                <%}%>
-                                                }else if (e.isDismissed) {
-                                                  navigator.clipboard.writeText(data.pcurl)
-                                                }
-                                              }
-                                          )
-                                      } else {
-                                          Swal.fire({
-                                            text: data.message,
-                                            icon: "error",
-                                            buttonsStyling: !1,
-                                            confirmButtonText: "Ok, got it!",
+                                            confirmButtonText: "Copy!",
                                             customClass: {
                                               confirmButton: "btn btn-primary",
                                             },
-                                          });
+                                          })
+                                        <% }else{ %>
+                                          window.location.href = data.url;
+                                        <% }%>
+                                        }else if (e.isDismissed) {
+                                          copyToClipboard(data.pcurl);
+                                        }
                                       }
-                                  }
+                                  )
+                                } else {
+                                    Swal.fire({
+                                      text: data.message,
+                                      icon: "error",
+                                      buttonsStyling: !1,
+                                      confirmButtonText: "Ok, got it!",
+                                      customClass: {
+                                        confirmButton: "btn btn-primary",
+                                      },
+                                    });
+                                }
                               }
-                              xhr.open("GET", `/sign?uuid=${uuid}&store=${document.getElementById("store").checked}`, true);
-                              xhr.send();
                           }
+                          xhr.open("GET", `/sign?uuid=${uuid}&store=${document.getElementById("store").checked}`, true);
+                          xhr.send();
+                        }
                       } else {
                           Swal.fire({
                             text: data.message,
@@ -392,10 +412,10 @@ style="background-color:#161616"
                             },
                           });
                       }
-                  }
-              };
-              xhr.send(formData);
-          })();
+                    }
+                };
+                xhr.send(formData);
+            })();
           }))
     </script>
   </body>

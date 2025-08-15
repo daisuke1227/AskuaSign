@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const fileUpload = require('express-fileupload');
 const router = express.Router();
 const moment = require('moment-timezone');
@@ -18,7 +19,7 @@ const app = express();
 
 app.use(CookieP());
 app.use(fileUpload({
-  limits: { fileSize: 5 * 1024 * 1024 * 1024 },
+    limits: { fileSize: 5 * 1024 * 1024 * 1024 },
 }));
 app.use(userAgent.express());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -32,10 +33,10 @@ app.set('view engine', 'ejs');
 app.disable('x-powered-by');
 app.use('/', router);
 
-const port = process.env.PORT || 3000;
-const mongourl = process.env.MongoURL || "mongodb://localhost:27017";
-const jwttoken = process.env.JWTToken || "askuasign";
-const domain = "https://sign.apptesters.org";
+const port = process.env.PORT;
+const mongourl = process.env.MONGO_URL;
+const jwttoken = process.env.JWT_TOKEN;
+const domain = process.env.DOMAIN;
 
 const client = new MongoClient(mongourl);
 
@@ -47,7 +48,7 @@ async function storeCert(req, res, uuid) {
     const token = await argon2.hash(crypto.randomBytes(6).toString('hex'), { hashLength: 18 });
     await DUsers.insertOne({uuid: uuid, token: token, expire: moment().add(3, 'days').unix()});
 
-    res.cookie('token', token, { maxAge: 31536000 });    
+    res.cookie('token', token, { maxAge: 31536000 });
 }
 
 async function signApp(uuid, res, req, store) {
@@ -75,26 +76,29 @@ async function signApp(uuid, res, req, store) {
         res.clearCookie('token');
     }
     res.clearCookie('nya');
-    
+
     const app = await Apps.findOne({ UUID: uuid });
 
     const appname = app.CustomName;
     const bid = app.BundleID;
 
     const password = signedtoken.password;
-    
+
     const appPath = path.join(__dirname, 'files', 'temp', `${uuid}.ipa`);
     const p12Path = path.join(__dirname, 'files', 'certs', `${ouuid ? ouuid : uuid}.p12`);
     const provPath = path.join(__dirname, 'files', 'certs', `${ouuid ? ouuid : uuid}.mobileprovision`);
     const plistPath = path.join(__dirname, 'files', 'plists', `${uuid}.plist`);
     const signAppPath = path.join(__dirname, 'files', 'signed', `${uuid}.ipa`);
 
-    var nya = await execAwait(`./zsign -k ${p12Path} -m ${provPath} ${password ? `-p ${password}` : ""} ${appPath} -o ${signAppPath} ${bid ? `-b ${bid.replace(/\s+/g, ' ').trim()}` : ""} ${appname ? `-n '${appname}'` : ""} -f`);
+    const isWindows = os.platform() === 'win32';
+    const zsignExecutable = isWindows ? 'zsign.exe' : './zsign';
+
+    var nya = await execAwait(`${zsignExecutable} -k "${p12Path}" -m "${provPath}" ${password ? `-p ${password}` : ""} -o "${signAppPath}" ${bid ? `-b "${bid.replace(/\s+/g, ' ').trim()}"` : ""} ${appname ? `-n '${appname}'` : ""} -f "${appPath}"`);
 
     if(nya == true) {
         return res.json({ status: 'error', message: "error while signing app (incorrect password)" });
     }
-    
+
     const plist = await makePlist(bid, uuid, nya, domain);
     await fs.writeFileSync(plistPath, plist);
 }
@@ -118,7 +122,6 @@ async function uploadApp(app, p12, prov, bname, bid, uuid, store, req, res)
     const Apps = await DB.collection('Apps');
     const DUsers = await DB.collection('Stored');
 
-    // check if app is file or string
     if(typeof app === "object") {
         await app.mv(appPath);
     }else if(typeof app === "string") {
@@ -126,13 +129,6 @@ async function uploadApp(app, p12, prov, bname, bid, uuid, store, req, res)
         await fs.writeFileSync(appPath, data.data);
     }
 
-
-    if(typeof app == "object") {
-        await app.mv(appPath);
-    }else if(typeof app == "string") {
-        var data = await axios.get(app, {responseType: 'arraybuffer'});
-        await fs.writeFileSync(appPath, data.data);
-    }
     var cookie = req?.cookies?.token;
     if(store == "true") {
         if(cookie) {
@@ -155,14 +151,13 @@ async function uploadApp(app, p12, prov, bname, bid, uuid, store, req, res)
     }
 
     await Apps.insertOne(AppStruct);
-    await p12.mv(p12Path); 
+    await p12.mv(p12Path);
     await prov.mv(provPath);
 }
 
 router.get('/', async (req, res) => {
     var mobile = req.useragent.isMobile;
     var token = req?.cookies?.token;
-
     return res.render('index.ejs', {mobile: mobile, token: token});
 });
 
@@ -173,21 +168,18 @@ router.get('/notice', async (req, res) => {
 router.post('/upload', async (req, res) => {
     var app = req?.files?.ipa;
     if (!app && !req.body?.ipa) {
-        res.json({ status: 'error', message: "Missing parameters (IPA)" });
-        return;
+        return res.json({ status: 'error', message: "Missing parameters (IPA)" });
     }
     app = app ? app : req.body?.ipa;
     
     const p12 = req?.files?.p12;
     if (!p12 && !req.body?.p12) {
-        res.json({ status: 'error', message: "Missing parameters (P12)" });
-        return;
+        return res.json({ status: 'error', message: "Missing parameters (P12)" });
     }
 
     const prov = req?.files?.prov;
     if (!prov && !req.body?.prov) {
-        res.json({ status: 'error', message: "Missing parameters (PROV)" });
-        return;
+        return res.json({ status: 'error', message: "Missing parameters (PROV)" });
     }
 
     const { password, bname, bid, store } = req.body;
@@ -196,8 +188,7 @@ router.post('/upload', async (req, res) => {
         .filter(param => !req.body[param] && !req.files[param]);
 
     if (missingParams.length) {
-        res.json({ status: 'error', message: `Missing parameters: ${missingParams.join(', ')}` });
-        return;
+        return res.json({ status: 'error', message: `Missing parameters: ${missingParams.join(', ')}` });
     }
 
     try {
@@ -205,9 +196,7 @@ router.post('/upload', async (req, res) => {
         const nya = sign({password: password}, jwttoken, { expiresIn: '300s' });
 
         res.cookie('nya', nya, { maxAge: 31536000 });
-
         await uploadApp(app, p12, prov, bname, bid, uuid, store, req, res);
-
         res.json({ status: 'ok', message: "Uploaded!", uuid: uuid});
     } catch (error) {
         console.log(error)
@@ -218,8 +207,7 @@ router.post('/upload', async (req, res) => {
 router.get('/sign', async (req, res) => {
     const { uuid, store } = req.query;
     if (!uuid) {
-        res.json({ status: 'error', message: "Missing parameters" });
-        return;
+        return res.json({ status: 'error', message: "Missing parameters" });
     }
     try {
         await signApp(uuid, res, req, store);
@@ -247,8 +235,7 @@ router.get('/sign', async (req, res) => {
 router.get('/install', async (req, res) => {
     var uuid = req?.query?.uuid;
     if (!uuid) {
-        res.json({ status: 'error', message: "Missing parameters" });
-        return;
+        return res.json({ status: 'error', message: "Missing parameters" });
     }
     res.redirect(`itms-services://?action=download-manifest&url=${domain}/plists/${uuid}.plist`);
 });
@@ -264,8 +251,7 @@ setInterval(async () => {
 
     SignedApps.forEach(async (app) => {
         const uuid = app.UUID;
-        try
-        {
+        try {
             if(app.Expire < moment().unix()) {
                 await Apps.deleteOne({ UUID: uuid });
                 await fs.unlinkSync(path.join(__dirname, 'files', 'plists', `${uuid}.plist`));
@@ -274,20 +260,19 @@ setInterval(async () => {
         } catch (_) {
             null
         }
-     })
-     StoredCerts.forEach(async (cert) => {
+    })
+    StoredCerts.forEach(async (cert) => {
         const uuid = cert.uuid;
-        try
-        {
+        try {
             if(cert.expire < moment().unix()) {
-                await StoredCerts.deleteOne({ uuid: uuid });
+                await Stored.deleteOne({ uuid: uuid });
                 await fs.unlinkSync(path.join(__dirname, 'files', 'certs', `${uuid}.p12`));
                 await fs.unlinkSync(path.join(__dirname, 'files', 'certs', `${uuid}.mobileprovision`));
             }
         } catch (_) {
             null
         }
-     })
+    })
 
 }, 5 * 1000);
 
