@@ -5,8 +5,8 @@ IPA Signing API using zsign
 ## Natively
 1. Install NodeJS and NPM
     ```console
-    apt install nodejs -y
-    apt install npm -y
+    sudo apt install nodejs -y
+    sudo apt install npm -y
     ```
 
 2. Update NodeJS
@@ -18,11 +18,11 @@ IPA Signing API using zsign
 
 3. Install MongoDB
     ```console
-    apt-get install gnupg curl
+    sudo apt-get install gnupg curl
     curl -fsSL https://pgp.mongodb.com/server-7.0.asc | \gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg \--dearmor
     echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-    apt-get update
-    apt-get install -y mongodb-org
+    sudo apt-get update
+    sudo apt-get install -y mongodb-org
 
     Debian swap line 3 with
     echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/debian bullseye/mongodb-org/7.0 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
@@ -69,4 +69,4 @@ node .
 3. `docker compose up -d`
 4. askuasign is now running locally on http://127.0.0.1:3000 !
 
-I love you! >:3
+I love you! <333
