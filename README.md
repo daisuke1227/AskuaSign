@@ -62,7 +62,7 @@ node .
 ## Docker
 1. clone repo
    ```console
-   git clone --depth=1 https://github.com/Athenua/AskuaSign
+   git clone --depth=1 https://github.com/srijansaxena11/AskuaSign
    ```
 2. open up `docker-compose.yml` and change `DOMAIN` on line 9 (should be able to use `http://127.0.0.1:3000` if you're only hosting locally)
 3. `docker compose up -d`
