@@ -2,7 +2,6 @@
 IPA Signing API using zsign
 
 # Setup (Linux)
-## Natively
 1. Install NodeJS and NPM
     ```console
     sudo apt install nodejs -y
