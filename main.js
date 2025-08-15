@@ -91,7 +91,7 @@ async function signApp(uuid, res, req, store) {
     const signAppPath = path.join(__dirname, 'files', 'signed', `${uuid}.ipa`);
 
     const isWindows = os.platform() === 'win32';
-    const zsignExecutable = isWindows ? 'zsign.exe' : './zsign';
+    const zsignExecutable = isWindows ? 'files\\zsign\\zsign.exe' : 'files/zsign/zsign';
 
     var nya = await execAwait(`${zsignExecutable} -k "${p12Path}" -m "${provPath}" ${password ? `-p ${password}` : ""} -o "${signAppPath}" ${bid ? `-b "${bid.replace(/\s+/g, ' ').trim()}"` : ""} ${appname ? `-n '${appname}'` : ""} -f "${appPath}"`);
 

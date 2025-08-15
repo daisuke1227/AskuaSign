@@ -35,6 +35,10 @@ IPA Signing API using zsign
     
 5. Modify .env
 
+6. make zsign executeable
+```console
+chmod +x files/zsign/zsign
+```
 6. Run
     ```console
     node .
