@@ -57,7 +57,7 @@ npm install
 
 5. your all done now just run
 ```console
-npm .
+node .
 ```
 
 ## Docker
